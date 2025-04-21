@@ -1,0 +1,145 @@
+✅ 1. Configure Node.js on EC2 (Ubuntu)
+    SSH into your EC2 instance first:
+
+    bash:
+    ssh -i your-key.pem ubuntu@your-ec2-public-ip
+
+    Install Node.js (LTS version):
+
+        bash:
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+
+    Check versions:
+        bash:
+        node -v
+        npm -v
+
+    Install Git:
+
+        bash:
+        sudo apt update
+        sudo apt install git -y
+
+
+    Clone your repo:
+        bash:
+        git clone https://github.com/ajayvishwakarma457/aws-app.git
+        cd aws-app
+
+    Install dependencies:
+        bash:
+        npm install
+
+    Run your app (temporary test):
+        bash:
+        node index.js
+
+
+
+✅ 2. Install & Configure Jenkins
+
+    Install Java (required for Jenkins):
+
+        bash:
+        sudo apt update
+        sudo apt install openjdk-17-jdk -y
+        java -version
+
+    Add Jenkins repo and install:
+        bash:
+        # 1. Download and add the Jenkins GPG key
+        curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
+        /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+
+        # 2. Add Jenkins repo with signed-by
+        echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | \
+        sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+        # 3. Update apt and install Jenkins
+        sudo apt update
+        sudo apt install jenkins -y
+
+    Start and enable Jenkins:
+        sudo systemctl start jenkins
+        sudo systemctl enable jenkins
+
+
+    Open Jenkins in your browser:
+        Open: http://<your-ec2-public-ip>:8080
+
+        Get Jenkins initial password:
+        bash:
+        sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+        Complete the setup and install Suggested Plugins.
+
+
+✅ 3. Create CI/CD Pipeline in Jenkins
+
+    Install Git & Node in Jenkins (globally available):
+
+        Inside Jenkins, go to:
+            Manage Jenkins > Global Tool Configuration
+            Add:
+                Git (should be auto-detected)
+                Node.js → Add installation (e.g., Node 18.x)
+
+        Also install these Jenkins plugins:
+            NodeJS Plugin
+            Pipeline Plugin
+            Git Plugin
+
+    Create a new pipeline job:
+        Go to Jenkins dashboard → New Item
+        Enter name: aws-nodejs-pipeline
+        Select Pipeline → OK
+
+    Add this pipeline script (example):
+
+        pipeline {
+            agent any
+
+            tools {
+                nodejs "Node 18.x"
+            }
+
+            stages {
+                stage('Clone Repo') {
+                    steps {
+                        git 'https://github.com/ajayvishwakarma457/aws-app.git'
+                    }
+                }
+                stage('Install Dependencies') {
+                    steps {
+                        sh 'npm install'
+                    }
+                }
+                stage('Run App') {
+                    steps {
+                        sh 'npm start &'
+                    }
+                }
+            }
+        }
+
+        Optionally, you can use pm2 instead of npm start & for better background process management.
+
+
+    🚀 Bonus: Auto-start App with PM2
+        Install PM2 globally:
+        bash:
+        sudo npm install -g pm2
+
+        Start your app:
+
+        bash:
+        pm2 start app.js
+        pm2 save
+        pm2 startup
+
+
+
+
+
+
