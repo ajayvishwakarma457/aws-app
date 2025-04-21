@@ -101,7 +101,7 @@
             agent any
 
             tools {
-                nodejs "Node 18.x"
+                nodejs "node18"
             }
 
             stages {

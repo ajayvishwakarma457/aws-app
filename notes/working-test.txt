@@ -1,0 +1,54 @@
+
+✅ Solution 1: Best Practice (Recommended)
+Move your project from /root/aws-app to a directory accessible by Jenkins, such as:
+
+bash:
+sudo mv /root/aws-app /var/www/aws-app
+sudo chown -R jenkins:jenkins /var/www/aws-app
+Then update your Jenkins pipeline to deploy there:
+
+groovy:
+
+sh '''
+rm -rf /var/www/aws-app/*
+cp -r * /var/www/aws-app/
+cd /var/www/aws-app
+npm install
+pm2 restart all || pm2 start index.js
+'''
+
+
+pipeline {
+            agent any
+
+            tools {
+                nodejs "node18"
+            }
+
+            stages {
+                stage('Clone Repo') {
+                    steps {
+                        git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
+                    }
+                }
+                stage('Install Dependencies') {
+                    steps {
+                        sh '''
+                        rm -rf /var/www/aws-app/*
+                        cp -r * /var/www/aws-app/
+                        '''
+                    }
+                }
+                stage('Run App') {
+                    steps {
+                        sh '''
+                        rm -rf /var/www/aws-app/*
+                        cp -r * /var/www/aws-app/
+                        cd /var/www/aws-app
+                        npm install
+                        pm2 restart all || pm2 start index.js
+                        '''
+                    }
+                }
+            }
+        }
