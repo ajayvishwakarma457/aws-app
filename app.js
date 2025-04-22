@@ -11,6 +11,10 @@ app.get('/about', (req, res) => {
   res.send('About Us...');
 });
 
+app.get('/contact', (req, res) => {
+  res.send('Contact Us...');
+});
+
 app.listen(PORT, () => {
   console.log(`Express server running at http://localhost:${PORT}`);
 });
