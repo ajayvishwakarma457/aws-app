@@ -4,8 +4,7 @@ const app = express();
 const PORT = 3000;
 
 app.get('/', (req, res) => {
-  console.log('Ram...');
-  res.send('Hello from Express on Mac!!!');
+  res.send('Manish...');
 });
 
 app.listen(PORT, () => {
