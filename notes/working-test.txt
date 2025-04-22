@@ -1,54 +1,79 @@
-
-✅ Solution 1: Best Practice (Recommended)
-Move your project from /root/aws-app to a directory accessible by Jenkins, such as:
-
-bash:
-sudo mv /root/aws-app /var/www/aws-app
-sudo chown -R jenkins:jenkins /var/www/aws-app
-Then update your Jenkins pipeline to deploy there:
-
-groovy:
-
-sh '''
-rm -rf /var/www/aws-app/*
-cp -r * /var/www/aws-app/
-cd /var/www/aws-app
-npm install
-pm2 restart all || pm2 start index.js
-'''
+✅ 6. Create Deployment Directory & Give Permissions
+    bash:
+    sudo mkdir -p /var/www/aws-app
+    sudo chown -R jenkins:jenkins /var/www/aws-app
 
 
-pipeline {
-            agent any
+✅ 7. Allow Jenkins Passwordless sudo
+    bash
+    sudo visudo
+    Add this line at the end:
 
-            tools {
-                nodejs "node18"
-            }
+    bash
+    jenkins ALL=(ALL) NOPASSWD: ALL
 
-            stages {
-                stage('Clone Repo') {
-                    steps {
-                        git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
-                    }
-                }
-                stage('Install Dependencies') {
-                    steps {
-                        sh '''
-                        rm -rf /var/www/aws-app/*
-                        cp -r * /var/www/aws-app/
-                        '''
-                    }
-                }
-                stage('Run App') {
-                    steps {
-                        sh '''
-                        rm -rf /var/www/aws-app/*
-                        cp -r * /var/www/aws-app/
-                        cd /var/www/aws-app
-                        npm install
-                        pm2 restart all || pm2 start index.js
-                        '''
-                    }
-                }
+
+✅ 8. Create Pipeline in Jenkins
+    Go to Jenkins Dashboard → New Item → Choose "Pipeline"
+
+    Name: aws-nodejs-pipeline
+
+    Scroll to Pipeline section, choose "Pipeline script"
+
+    Paste this script:
+
+            pipeline {
+    agent any
+
+    tools {
+        nodejs "node18"
+    }
+
+    environment {
+        DEPLOY_DIR = "/var/www/aws-app"
+    }
+
+    stages {
+        stage('Clone Repo') {
+            steps {
+                git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
             }
         }
+
+        stage('Deploy Files') {
+            steps {
+                sh '''
+                echo "Creating deployment directory if not exists..."
+                sudo mkdir -p $DEPLOY_DIR
+                sudo chown -R jenkins:jenkins $DEPLOY_DIR
+
+                echo "Copying files to $DEPLOY_DIR"
+                rsync -av --delete . $DEPLOY_DIR
+                '''
+            }
+        }
+
+        stage('Install & Run App') {
+            steps {
+                sh '''
+                echo "Installing dependencies..."
+                cd $DEPLOY_DIR
+                npm install
+
+                echo "Restarting app with PM2..."
+                pm2 restart aws-app || pm2 start index.js --name aws-app
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Deployment successful!'
+        }
+        failure {
+            echo '❌ Deployment failed.'
+        }
+    }
+}
+

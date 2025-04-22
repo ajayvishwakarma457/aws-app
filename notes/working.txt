@@ -33,7 +33,7 @@
 
     Run your app (temporary test):
         bash:
-        node index.js
+        node app.js
 
 
 
@@ -95,6 +95,27 @@
         Enter name: aws-nodejs-pipeline
         Select Pipeline → OK
 
+    
+    ✅ 4. Install pm2 globally
+        bash:
+        sudo npm install -g pm2
+
+    ✅ 5. Create Deployment Directory & Give Permissions
+        bash:
+        sudo mkdir -p /var/www/aws-app
+        sudo chown -R jenkins:jenkins /var/www/aws-app
+
+    ✅ 7. Allow Jenkins Passwordless sudo
+        bash:
+        sudo visudo
+        Add this line at the end:
+
+    Add this line at the end:
+        bash:
+        jenkins ALL=(ALL) NOPASSWD: ALL
+
+
+
     Add this pipeline script (example):
 
         pipeline {
@@ -104,24 +125,54 @@
                 nodejs "node18"
             }
 
+            environment {
+                DEPLOY_DIR = "/var/www/aws-app"
+            }
+
             stages {
                 stage('Clone Repo') {
                     steps {
                         git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
                     }
                 }
-                stage('Install Dependencies') {
+
+                stage('Deploy Files') {
                     steps {
-                        sh 'npm install'
+                        sh '''
+                        echo "Creating deployment directory if not exists..."
+                        sudo mkdir -p $DEPLOY_DIR
+                        sudo chown -R jenkins:jenkins $DEPLOY_DIR
+
+                        echo "Copying files to $DEPLOY_DIR"
+                        rsync -av --delete . $DEPLOY_DIR
+                        '''
                     }
                 }
-                stage('Run App') {
+
+                stage('Install & Run App') {
                     steps {
-                        sh 'npm start &'
+                        sh '''
+                        echo "Installing dependencies..."
+                        cd $DEPLOY_DIR
+                        npm install
+
+                        echo "Restarting app with PM2..."
+                        pm2 restart aws-app || pm2 start app.js --name aws-app
+                        '''
                     }
                 }
             }
+
+            post {
+                success {
+                    echo '✅ Deployment successful!'
+                }
+                failure {
+                    echo '❌ Deployment failed.'
+                }
+            }
         }
+
 
         Optionally, you can use pm2 instead of npm start & for better background process management.
 
