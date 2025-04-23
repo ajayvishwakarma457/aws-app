@@ -11,8 +11,8 @@ app.get('/about', (req, res) => {
   res.send('About Us...');
 });
 
-app.get('/contact', (req, res) => {
-  res.send('Contact Us...');
+app.get('/blob', (req, res) => {
+  res.send('Blog...');
 });
 
 app.listen(PORT, () => {
