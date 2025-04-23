@@ -7,8 +7,8 @@ app.get('/', (req, res) => {
   res.send('Sita Ram Ji...');
 });
 
-app.get('/about', (req, res) => {
-  res.send('About Us...');
+app.get('/manish', (req, res) => {
+  res.send('Manish Us...');
 });
 
 app.listen(PORT, () => {
