@@ -11,10 +11,6 @@ app.get('/about', (req, res) => {
   res.send('About Us...');
 });
 
-app.get('/blob', (req, res) => {
-  res.send('Blog...');
-});
-
 app.listen(PORT, () => {
   console.log(`Express server running at http://localhost:${PORT}`);
 });
