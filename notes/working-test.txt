@@ -1,71 +1,55 @@
-✅ 6. Create Deployment Directory & Give Permissions
-    bash:
-    sudo mkdir -p /var/www/aws-app
-    sudo chown -R jenkins:jenkins /var/www/aws-app
+pipeline {
+            agent any
 
-
-✅ 7. Allow Jenkins Passwordless sudo
-    bash
-    sudo visudo
-    Add this line at the end:
-
-    bash
-    jenkins ALL=(ALL) NOPASSWD: ALL
-
-
-✅ 8. Create Pipeline in Jenkins
-    Go to Jenkins Dashboard → New Item → Choose "Pipeline"
-
-    Name: aws-nodejs-pipeline
-
-    Scroll to Pipeline section, choose "Pipeline script"
-
-    Paste this script:
-
-            pipeline {
-    agent any
-
-    tools {
-        nodejs "node18"
-    }
-
-    environment {
-        DEPLOY_DIR = "/var/www/aws-app"
-    }
-
-    stages {
-        stage('Clone Repo') {
-            steps {
-                git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
+            tools {
+                nodejs "node18"
             }
-        }
 
-        stage('Deploy Files') {
-            steps {
-                sh '''
-                echo "Creating deployment directory if not exists..."
-                sudo mkdir -p $DEPLOY_DIR
-                sudo chown -R jenkins:jenkins $DEPLOY_DIR
-
-                echo "Copying files to $DEPLOY_DIR"
-                rsync -av --delete . $DEPLOY_DIR
-                '''
+            environment {
+                DEPLOY_DIR = "/var/www/aws-app"
             }
-        }
 
-        stage('Install & Run App') {
-            steps {
-                sh '''
-                echo "Installing dependencies..."
-                cd $DEPLOY_DIR
-                npm install
+            stages {
+                stage('Clone Repo') {
+                    steps {
+                        git branch: 'main', url: 'https://github.com/ajayvishwakarma457/aws-app.git'
+                    }
+                }
 
-                echo "Restarting app with PM2..."
-                pm2 restart aws-app || pm2 start index.js --name aws-app
-                '''
+                stage('Deploy Files') {
+                    steps {
+                        sh '''
+                        echo "Creating deployment directory if not exists..."
+                        sudo mkdir -p $DEPLOY_DIR
+                        sudo chown -R jenkins:jenkins $DEPLOY_DIR
+
+                        echo "Copying files to $DEPLOY_DIR"
+                        rsync -av --delete . $DEPLOY_DIR
+                        '''
+                    }
+                }
+
+                stage('Install & Run App') {
+                    steps {
+                        sh '''
+                        echo "Installing dependencies..."
+                        cd $DEPLOY_DIR
+                        npm install
+
+                        echo "Killing any process on port 3000..."
+                        PID=$(sudo lsof -t -i:3000)
+                        if [ ! -z "$PID" ]; then
+                            sudo kill -9 $PID
+                        fi
+
+                        echo "Restarting app with PM2..."
+                        pm2 delete aws-app || true
+                        pm2 start /var/www/aws-app/app.js --name aws-app
+                        pm2 logs aws-app --lines 20
+                        '''
+                    }
+                }
             }
-        }
-    }
 
     post {
         success {
@@ -76,4 +60,3 @@
         }
     }
 }
-
